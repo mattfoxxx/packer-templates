@@ -1,0 +1,181 @@
+{
+    "description": "Build bionic image with saltstack on Proxmox",
+    "variables": {
+        "hostname": "",
+        "domain": "",
+        "http_proxy": "{{env `http_proxy`}}",
+        "https_proxy": "{{env `https_proxy`}}",
+        "update": "true",
+        "disable_ipv6": "true",
+        "no_proxy": "{{env `no_proxy`}}",
+        "proxmox_url": "{{env `pve_url`}}",
+        "proxmox_username": "{{env `pve_user`}}",
+        "proxmox_password": "{{env `pve_pass`}}",
+        "iso_filename": "{{user `iso_filename`}}",
+        "vm_id": "{{user `vm_id`}}",
+        "vm_name": "ubuntu1804-tmpl",
+        "template_description": "Ubuntu 18.04 x86_64 template built with packer. Username: {{env `vm_default_user`}}",
+        "vm_default_user": "{{env `vm_default_user`}}",
+        "vm_memory": "{{env `vm_memory`}}",
+        "ssh_username": "{{user `ssh_user`}}",
+        "ssh_password": "{{user `ssh_pass`}}"
+    },
+    "sensitive-variables": [
+        "ssh_password",
+        "proxmox_password"
+    ],
+    "builders": [
+        {
+            "type": "virtualbox-iso",
+            "communicator": "ssh",
+            "ssh_pty": "true",
+            "guest_os_type": "Ubuntu_64",
+            "vm_name": "ubuntu-18.04-vbox-template",
+            "iso_url": "http://cdimage.ubuntu.com/releases/18.04/release/ubuntu-18.04.3-server-amd64.iso",
+            "iso_target_path": "./iso/ubuntu-18.04.3-server-amd64.iso",
+            "iso_checksum": "cb7cd5a0c94899a04a536441c8b6d2bf",
+            "iso_checksum_type": "md5",
+            "memory": "1024",
+            "cpus": "1",
+            "disk_size": "20000",
+            "format": "ova",
+            "guest_additions_mode": "upload",
+            "headless": "false",
+            "http_directory": "http",
+            "ssh_username": "{{user `ssh_user`}}",
+            "ssh_password": "{{user `ssh_pass`}}",
+            "ssh_timeout": "20m",
+            "shutdown_command": "echo '{{user `ssh_pass`}}'|sudo -S shutdown -P now",
+            "boot_command": [
+                "<enter><wait><f6><esc><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+                "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+                "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+                "<bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs><bs>",
+                "/install/vmlinuz<wait>",
+                " auto<wait>",
+                " console-setup/ask_detect=false<wait>",
+                " console-setup/layoutcode=us<wait>",
+                " console-setup/modelcode=pc105<wait>",
+                " debconf/frontend=noninteractive<wait>",
+                " debian-installer=en_US<wait>",
+                " fb=false<wait>",
+                " initrd=/install/initrd.gz<wait>",
+                " kbd-chooser/method=us<wait>",
+                " keyboard-configuration/layout=German<wait>",
+                " keyboard-configuration/variant=de<wait>",
+                " locale=de_DE<wait>",
+                " netcfg/get_domain={{user `domain`}}<wait>",
+                " netcfg/get_hostname={{user `hostname`}}<wait>",
+                " grub-installer/bootdev=/dev/sda<wait>",
+                " noapic<wait>",
+                " preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/{{user `preseed_prefix`}}preseed.cfg",
+                " -- <wait>",
+                "<enter><wait>"
+            ]
+        },
+        {
+            "type": "proxmox",
+            "proxmox_url": "{{user `proxmox_url`}}",
+            "insecure_skip_tls_verify": true,
+            "username": "{{user `proxmox_username`}}",
+            "password": "{{user `proxmox_password`}}",
+            "vm_id": "{{user `vm_id`}}",
+            "vm_name": "{{user `vm_name`}}",
+            "template_description": "{{user `template_description`}}",
+            "memory": "{{user `vm_memory`}}",
+            "sockets": "1",
+            "cores": "2",
+            "cpu_type": "host",
+            "os": "l26",
+            "http_directory": "http",
+            "node": "{{user `pve_node`}}",
+            "network_adapters": [
+                {
+                    "model": "virtio",
+                    "bridge": "vmbr0"
+                }
+            ],
+            "disks": [
+                {
+                    "type": "scsi",
+                    "disk_size": "8G",
+                    "storage_pool": "local-lvm",
+                    "storage_pool_type": "lvm",
+                    "format": "raw",
+                    "cache_mode": "writeback"
+                }
+            ],
+            "scsi_controller": "virtio-scsi-pci",
+            "communicator": "ssh",
+            "ssh_pty": "true",
+            "ssh_username": "{{user `ssh_username`}}",
+            "ssh_password": "{{user `ssh_password`}}",
+            "ssh_timeout": "30m",
+            "iso_file": "local:iso/{{user `iso_filename`}}",
+            "unmount_iso": true,
+            "boot_wait": "10s",
+            "boot_command": [
+                "<esc><wait>",
+                "<esc><wait>",
+                "<enter><wait>",
+                "/install/vmlinuz initrd=/install/initrd.gz",
+                " auto=true priority=critical",
+                " url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg",
+                "<enter>"
+            ]
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "environment_vars": [
+                "DEBIAN_FRONTEND=noninteractive",
+                "UPDATE={{user `update`}}",
+                "DISABLE_IPV6={{user `disable_ipv6`}}",
+                "SSH_USERNAME={{user `ssh_user`}}",
+                "SSH_PASSWORD={{user `ssh_pass`}}",
+                "http_proxy={{user `http_proxy`}}",
+                "https_proxy={{user `https_proxy`}}",
+                "no_proxy={{user `no_proxy`}}"
+            ],
+            "execute_command": "echo '{{user `ssh_pass`}}'|{{.Vars}} sudo -E -S bash '{{.Path}}'",
+            "expect_disconnect": true,
+            "scripts": [
+                "scripts/01-update.sh",
+                "scripts/02-ansible.sh",
+                "scripts/03-motd.sh"
+            ]
+        },
+        {
+            "type": "ansible-local",
+            "playbook_file": "ansible/main.yml",
+            "galaxy_file": "ansible/requirements.yml"
+        },
+        {
+            "type": "shell",
+            "environment_vars": [
+                "DEBIAN_FRONTEND=noninteractive",
+                "UPDATE={{user `update`}}",
+                "DISABLE_IPV6={{user `disable_ipv6`}}",
+                "SSH_USERNAME={{user `ssh_user`}}",
+                "SSH_PASSWORD={{user `ssh_pass`}}",
+                "http_proxy={{user `http_proxy`}}",
+                "https_proxy={{user `https_proxy`}}",
+                "no_proxy={{user `no_proxy`}}"
+            ],
+            "execute_command": "echo '{{user `ssh_pass`}}'|{{.Vars}} sudo -E -S bash '{{.Path}}'",
+            "expect_disconnect": true,
+            "scripts": [
+                "scripts/99-housekeeping.sh"
+            ]
+        }
+    ],
+    "post-processors": [
+        [
+            {
+                "output": "builds/{{.Provider}}-ubuntu1804.box",
+                "type": "vagrant"
+            }
+        ]
+    ]
+}

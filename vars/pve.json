@@ -1,0 +1,10 @@
+{
+    "hostname": "ubuntu",
+    "domain": "local",
+    "ssh_user": "install",
+    "ssh_pass": "install",
+    "pve_node": "pve",
+    "vm_memory": "2048",
+    "vm_id": "9010",
+    "iso_filename": "ubuntu-18.04.3-server-amd64.iso"
+}
