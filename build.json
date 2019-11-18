@@ -110,7 +110,7 @@
             "ssh_pty": "true",
             "ssh_username": "{{user `ssh_username`}}",
             "ssh_password": "{{user `ssh_password`}}",
-            "ssh_timeout": "30m",
+            "ssh_timeout": "60m",
             "iso_file": "local:iso/{{user `iso_filename`}}",
             "unmount_iso": true,
             "boot_wait": "10s",
@@ -142,6 +142,7 @@
             "expect_disconnect": true,
             "scripts": [
                 "scripts/01-update.sh",
+                "scripts/02-sudoers.sh",
                 "scripts/02-ansible.sh",
                 "scripts/03-motd.sh"
             ]
@@ -174,7 +175,8 @@
         [
             {
                 "output": "builds/{{.Provider}}-ubuntu1804.box",
-                "type": "vagrant"
+                "type": "vagrant",
+                "only": ["virtualbox-iso"]
             }
         ]
     ]

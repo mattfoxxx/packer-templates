@@ -1,8 +1,11 @@
 #!/bin/bash -eux
 
 # Uninstall Ansible and remove PPA.
-apt -y remove --purge ansible
+apt-get -y remove --purge ansible
 apt-add-repository --remove ppa:ansible/ansible
+
+# Remove passwordless sudo for sudo group
+rm /etc/sudoers.d/sudoers
 
 # Apt cleanup.
 apt autoremove
