@@ -1,7 +1,7 @@
 ---
 - hosts: all
   roles:
-  - ansible-timezone
+  - ansible-cloud-init
 
   vars:
-   timezone: Europe/Berlin
+   cloud_init_configure: true
